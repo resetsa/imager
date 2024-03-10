@@ -15,8 +15,7 @@ func usage() {
 func main() {
 	rootDir := pflag.StringP("root-dir", "r", "", "root dir for scan image files JPG/PNG")
 	rmAction := pflag.Bool("remove", false, "remove small image files")
-	minWidth := pflag.IntP("min-width", "w", 1024, "min width")
-	minHeight := pflag.IntP("min-height", "h", 768, "min height")
+	minSize := pflag.IntP("min", "m", 1024, "min side image")
 	maxThreads := pflag.Int16P("threads", "t", 10, "max parallel process files")
 	debugLevel := pflag.BoolP("debug", "d", false, "debug level")
 	pflag.Parse()
@@ -26,19 +25,25 @@ func main() {
 		slog.Error("root_dir is required")
 		os.Exit(1)
 	}
+
 	logLevel := slog.LevelInfo
 	if *debugLevel {
 		logLevel = slog.LevelDebug
 	}
 
-	c := checkservice.NewCheckService(*rootDir, *maxThreads, *minWidth, *minHeight, logLevel)
-	c.DoAction()
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+	checker := checkservice.NewCheckerImageSize(*minSize, *logger)
 
-	runAction := c.PrintFile
+	var actor checkservice.Actor
+	actor = &checkservice.PrintActor{Logger: logger}
 	if *rmAction {
-		runAction = c.DeleteFile
+		actor = &checkservice.DeleteActor{Logger: logger}
 	}
-	if err := runAction(); err != nil {
+	c := checkservice.NewCheckService(*rootDir, *maxThreads, logger, actor, checker)
+
+	c.DoCheck()
+
+	if err := c.Action(); err != nil {
 		c.Logger.Error("error on run action", "err", err)
 	}
 }

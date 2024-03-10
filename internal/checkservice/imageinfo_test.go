@@ -7,8 +7,7 @@ import (
 
 func TestImageInfo_IsBetterRes(t *testing.T) {
 	type args struct {
-		h int
-		w int
+		min int
 	}
 	tests := []struct {
 		name string
@@ -25,8 +24,7 @@ func TestImageInfo_IsBetterRes(t *testing.T) {
 				},
 			},
 			args: args{
-				h: 200,
-				w: 200,
+				min: 200,
 			},
 			want: false,
 		},
@@ -39,8 +37,7 @@ func TestImageInfo_IsBetterRes(t *testing.T) {
 				},
 			},
 			args: args{
-				h: 200,
-				w: 200,
+				min: 200,
 			},
 			want: true,
 		},
@@ -53,8 +50,7 @@ func TestImageInfo_IsBetterRes(t *testing.T) {
 				},
 			},
 			args: args{
-				h: 200,
-				w: 200,
+				min: 200,
 			},
 			want: false,
 		},
@@ -67,15 +63,14 @@ func TestImageInfo_IsBetterRes(t *testing.T) {
 				},
 			},
 			args: args{
-				h: 200,
-				w: 200,
+				min: 200,
 			},
 			want: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.i.IsBetterRes(tt.args.h, tt.args.w); got != tt.want {
+			if got := tt.i.IsBetterRes(tt.args.min); got != tt.want {
 				t.Errorf("ImageInfo.CmpResolution() = %v, want %v", got, tt.want)
 			}
 		})

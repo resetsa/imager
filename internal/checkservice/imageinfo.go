@@ -8,15 +8,15 @@ type ImageInfo struct {
 	IsHighResolution bool
 }
 
-func (i *ImageInfo) IsBetterRes(h, w int) bool {
-	return min(i.Config.Height, i.Config.Width) >= min(h, w)
+func (i *ImageInfo) IsBetterRes(size int) bool {
+	return min(i.Config.Height, i.Config.Width) >= size
 }
 
-func NewImageInfo(config image.Config, path string, h, w int) ImageInfo {
+func NewImageInfo(config image.Config, path string, min int) ImageInfo {
 	i := ImageInfo{
 		Config: config,
 		Path:   path,
 	}
-	i.IsHighResolution = i.IsBetterRes(h, w)
+	i.IsHighResolution = i.IsBetterRes(min)
 	return i
 }
