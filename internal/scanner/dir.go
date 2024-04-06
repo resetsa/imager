@@ -1,13 +1,9 @@
-package checkservice
+package scanner
 
 import (
 	"os"
 	"path/filepath"
 )
-
-type Scanner interface {
-	Scan(out chan string) error
-}
 
 type ScanDirectory struct {
 	rootDir string

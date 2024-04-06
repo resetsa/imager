@@ -10,20 +10,20 @@ import (
 	"github.com/spf13/pflag"
 )
 
-func Usage() {
+func usage() {
 	pflag.PrintDefaults()
 }
 
 func main() {
 	rootDir := pflag.StringP("root-dir", "r", "", "root dir for scan image files JPG/PNG")
-	rmAction := pflag.Bool("remove", false, "remove small image files")
-	minSize := pflag.IntP("min", "m", 1024, "min side image")
+	rmOrig := pflag.Bool("remove-orig", false, "remove original files")
+	minSize := pflag.Int64P("size", "s", 1024*1024, "min size for processing")
 	maxThreads := pflag.Int16P("threads", "t", 10, "max parallel process files")
 	debugLevel := pflag.BoolP("debug", "d", false, "debug level")
 	pflag.Parse()
 
 	if *rootDir == "" {
-		Usage()
+		usage()
 		slog.Error("root_dir is required")
 		os.Exit(1)
 	}
@@ -34,13 +34,9 @@ func main() {
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
-	checker := checker.NewCheckImageResolution(*minSize, *logger)
+	checker := checker.NewCheckImageSize(*minSize, logger)
 
-	var act actor.Actor
-	act = &actor.PrintAct{Logger: logger}
-	if *rmAction {
-		act = &actor.DeleteAct{Logger: logger}
-	}
+	act := actor.NewConvertAct(!*rmOrig, "", logger)
 	c := imageservice.NewImageService(*rootDir, *maxThreads, logger, act, checker)
 
 	c.DoCheck()
