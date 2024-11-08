@@ -5,7 +5,8 @@ import (
 	"os"
 	"resetsa/imager/internal/actor"
 	"resetsa/imager/internal/checker"
-	"resetsa/imager/internal/imageservice"
+	"resetsa/imager/internal/scanner"
+	"resetsa/imager/internal/service"
 
 	"github.com/spf13/pflag"
 )
@@ -35,13 +36,15 @@ func main() {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 	checker := checker.NewCheckImageResolution(*minSize, *logger)
+	scanner := scanner.NewScanFile(*rootDir)
 
 	var act actor.Actor
 	act = &actor.PrintAct{Logger: logger}
 	if *rmAction {
 		act = &actor.DeleteAct{Logger: logger}
 	}
-	c := imageservice.NewImageService(*rootDir, *maxThreads, logger, act, checker)
+
+	c := service.NewImageService(*rootDir, *maxThreads, logger, act, checker, scanner)
 
 	c.DoCheck()
 	c.DoAction()

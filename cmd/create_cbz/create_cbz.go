@@ -16,11 +16,10 @@ func usage() {
 }
 
 func main() {
-	rootDir := pflag.StringP("root-dir", "r", "", "root dir for scan image files JPG/PNG")
+	rootDir := pflag.StringP("source-dir", "s", "", "source dir")
+	destDir := pflag.StringP("target-dir", "t", "", "dest dir")
 	rmOrig := pflag.Bool("remove-orig", false, "remove original files")
-	minSize := pflag.Int64P("size", "s", 50*1024, "min size for processing, bytes")
-	maxResolution := pflag.Int64P("max-res", "m", 2048, "max size image in pixel")
-	maxThreads := pflag.Int16P("threads", "t", 10, "max parallel process files")
+	maxThreads := pflag.Int16P("goroutines", "g", 10, "max parallel process")
 	debugLevel := pflag.BoolP("debug", "d", false, "debug level")
 	pflag.Parse()
 
@@ -30,19 +29,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *destDir == "" {
+		usage()
+		slog.Error("dest_dir is required")
+		os.Exit(1)
+	}
+
 	logLevel := slog.LevelInfo
 	if *debugLevel {
 		logLevel = slog.LevelDebug
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
-	checker := checker.NewCheckImageSize(*minSize, logger)
-	scanner := scanner.NewScanFile(*rootDir)
-
-	act := actor.NewConvertAct(!*rmOrig, "", *maxResolution, logger)
-	act.JpegQuality = 90
-	c := service.NewImageService(*rootDir, *maxThreads, logger, act, checker, scanner)
+	actor := actor.NewCBZAct(!*rmOrig, *destDir, logger)
+	scanner := scanner.NewScanDir(*rootDir)
+	checker := checker.NewCheckDirContent(false, []string{".jpg", ".png", ".jpeg"}, logger)
+	c := service.NewImageService(*rootDir, *maxThreads, logger, actor, checker, scanner)
 
 	c.DoCheck()
 	c.DoAction()
+
 }

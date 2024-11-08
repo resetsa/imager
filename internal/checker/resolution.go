@@ -11,7 +11,7 @@ type CheckImageResolution struct {
 	minResolution int
 }
 
-func (c *CheckImageResolution) CheckImage(path string) (result bool, err error) {
+func (c *CheckImageResolution) Check(path string) (result bool, err error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return false, err

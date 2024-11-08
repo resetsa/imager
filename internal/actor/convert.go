@@ -17,6 +17,8 @@ type ConvertAct struct {
 	Logger        *slog.Logger
 	SaveOriginal  bool
 	PrefixNewFile string
+	maxRes        int64
+	JpegQuality   int
 }
 
 func (c *ConvertAct) ActMany(paths []string) error {
@@ -52,7 +54,27 @@ func (c *ConvertAct) ActOnce(path string) error {
 		tmpLogger.Error("error on decode", "err", err)
 		return err
 	}
-	tmpLogger.Debug("resizing file")
+
+	if imgConfig.Height > imgConfig.Width {
+		if imgConfig.Height > int(c.maxRes) {
+			imgConfig.Width = 0
+			imgConfig.Height = int(c.maxRes)
+		}
+	}
+
+	if imgConfig.Width > imgConfig.Height {
+		if imgConfig.Width > int(c.maxRes) {
+			imgConfig.Height = 0
+			imgConfig.Width = int(c.maxRes)
+		}
+	}
+
+	if imgConfig.Height == imgConfig.Width && imgConfig.Width > int(c.maxRes) {
+		imgConfig.Width = int(c.maxRes)
+		imgConfig.Height = 0
+	}
+
+	tmpLogger.Debug("resizing file", "width", imgConfig.Width, "height", imgConfig.Height)
 	nImage := imaging.Resize(oImage, imgConfig.Width, imgConfig.Height, imaging.Lanczos)
 	if err = c.Save(nImage, path, oSize); err != nil {
 		return err
@@ -65,7 +87,7 @@ func (c *ConvertAct) Save(img *image.NRGBA, path string, sourceSize int64) error
 	nPath := c.newPathGenerate(path)
 	format, _ := imaging.FormatFromFilename(nPath)
 	buf := bytes.NewBuffer([]byte{})
-	if err := imaging.Encode(buf, img, format); err != nil {
+	if err := imaging.Encode(buf, img, format, imaging.JPEGQuality(c.JpegQuality), imaging.PNGCompressionLevel(-3)); err != nil {
 		return err
 	}
 	if int64(buf.Len()) >= sourceSize {
@@ -95,9 +117,9 @@ func (c *ConvertAct) newPathGenerate(path string) string {
 	return nPath
 }
 
-func NewConvertAct(saveOrig bool, prefix string, logger *slog.Logger) *ConvertAct {
+func NewConvertAct(saveOrig bool, prefix string, maxRes int64, logger *slog.Logger) *ConvertAct {
 	if prefix == "" {
-		return &ConvertAct{SaveOriginal: saveOrig, PrefixNewFile: "_mod", Logger: logger}
+		return &ConvertAct{SaveOriginal: saveOrig, PrefixNewFile: "_mod", Logger: logger, maxRes: maxRes, JpegQuality: 85}
 	}
-	return &ConvertAct{SaveOriginal: saveOrig, PrefixNewFile: prefix, Logger: logger}
+	return &ConvertAct{SaveOriginal: saveOrig, PrefixNewFile: prefix, Logger: logger, maxRes: maxRes, JpegQuality: 85}
 }

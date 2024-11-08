@@ -1,6 +1,6 @@
 module resetsa/imager
 
-go 1.21.4
+go 1.23.3
 
 require (
 	github.com/disintegration/imaging v1.6.2

@@ -5,22 +5,26 @@ import (
 	"path/filepath"
 )
 
-type ScanDirectory struct {
+type ScanDir struct {
 	rootDir string
 }
 
-func NewScanDirectory(rootDir string) *ScanDirectory {
-	return &ScanDirectory{rootDir: rootDir}
+func NewScanDir(rootDir string) *ScanDir {
+	return &ScanDir{rootDir: rootDir}
 }
 
-func (s *ScanDirectory) Scan(out chan string) error {
+func (s *ScanDir) Scan(out chan string) error {
 	return filepath.Walk(s.rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() {
+		if info.IsDir() {
 			out <- path
 		}
 		return nil
 	})
+}
+
+func (s *ScanDir) RootDir() string {
+	return s.rootDir
 }

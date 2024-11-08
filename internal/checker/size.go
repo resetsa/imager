@@ -11,7 +11,7 @@ type CheckImageSize struct {
 	minSize int64
 }
 
-func (c *CheckImageSize) CheckImage(path string) (result bool, err error) {
+func (c *CheckImageSize) Check(path string) (result bool, err error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return false, err
