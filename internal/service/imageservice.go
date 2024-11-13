@@ -15,22 +15,22 @@ import (
 type ImageService struct {
 	scanner      scanner.Scanner
 	queueForScan chan string
-	queueForAct  chan string
 	Logger       *slog.Logger
 	pathsForAct  []string
 	actor        actor.Actor
 	checker      checker.Checker
+	limiter      chan struct{}
 }
 
 func NewImageService(rootDir string, maxThread int16, logger *slog.Logger, actor actor.Actor, checker checker.Checker, scanner scanner.Scanner) *ImageService {
 	return &ImageService{
 		scanner:      scanner,
-		queueForScan: make(chan string, maxThread),
-		queueForAct:  make(chan string, maxThread),
+		queueForScan: make(chan string),
 		Logger:       logger,
 		pathsForAct:  []string{},
 		actor:        actor,
 		checker:      checker,
+		limiter:      make(chan struct{}, maxThread),
 	}
 }
 
@@ -57,8 +57,12 @@ func (c *ImageService) DoCheck() {
 
 	for p := range c.queueForScan {
 		wg.Add(1)
+		c.limiter <- struct{}{}
 		go func(path string) {
-			defer wg.Done()
+			defer func() {
+				wg.Done()
+				<-c.limiter
+			}()
 			checkResult, err := c.checker.Check(path)
 			if err != nil {
 				if errors.Is(err, image.ErrFormat) {
@@ -79,18 +83,19 @@ func (c *ImageService) DoCheck() {
 }
 
 func (c *ImageService) DoAction() {
-	defer close(c.queueForAct)
 	var wg sync.WaitGroup
 	for _, v := range c.pathsForAct {
 		wg.Add(1)
-		c.queueForAct <- v
-		go func(chan string) {
-			defer wg.Done()
-			imageConfig := <-c.queueForAct
-			if err := c.actor.ActOnce(imageConfig); err != nil {
+		c.limiter <- struct{}{}
+		go func(path string) {
+			defer func() {
+				wg.Done()
+				<-c.limiter
+			}()
+			if err := c.actor.ActOnce(path); err != nil {
 				c.Logger.Error("error on action", "err", err)
 			}
-		}(c.queueForAct)
+		}(v)
 	}
 	wg.Wait()
 }
